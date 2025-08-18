@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
-  <meta charset="UTF-8">
-  <!--Gianmarco Bastianelli-->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Green Pepper</title>
   <style>
     body {
@@ -11,16 +12,19 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px;
+      padding: 10px;
+      touch-action: none;
+      background: #f0f0f0;
     }
 
     #game {
       background: #fafafa;
       border: 1px solid #333;
+      touch-action: none;
     }
 
     #resetBtn {
-      margin-block-start: 10px;
+      margin-top: 10px;
       padding: 8px 16px;
       font-size: 16px;
       display: none;
@@ -32,17 +36,28 @@
         ". up ."
         "left . right"
         ". down .";
-      grid-template-columns: 50px 50px 50px;
-      grid-template-rows: 50px 50px 50px;
-      gap: 5px;
-      margin-block-start: 20px;
+      grid-template-columns: 5rem 5rem 5rem;
+      grid-template-rows: 5rem 5rem 5rem;
+      gap: 1.2rem;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+      touch-action: none;
     }
 
     #controls button {
-      inline-size: 50px;
-      block-size: 50px;
-      font-size: 24px;
-      padding: 0;
+      font-size: 2rem;
+      width: 100%;
+      height: 100%;
+      border-radius: 0.5rem;
+      background: #ddd;
+      border: 2px solid #999;
+      box-shadow: 0 2px 0 #bbb;
+    }
+
+    #controls button:active {
+      background: #bbb;
+      box-shadow: none;
+      transform: translateY(2px);
     }
 
     #up {
@@ -64,7 +79,7 @@
 </head>
 
 <body>
-  <canvas id="game" width="400" height="400"></canvas>
+  <canvas id="game"></canvas>
   <button id="resetBtn">Reset</button>
   <div id="controls">
     <button id="up">↑</button>
@@ -76,21 +91,30 @@
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
-    const box = 20;
-    const size = 20;
     const resetBtn = document.getElementById('resetBtn');
 
     let snake, direction, food, gameLoop, isGameOver;
+    let box, size;
+
+    function resizeCanvas() {
+      const screenWidth = window.innerWidth;
+      const canvasSize = Math.min(screenWidth - 40, 400);
+      canvas.width = canvasSize;
+      canvas.height = canvasSize;
+    }
 
     function spawnFood() {
       return {
-        x: Math.floor(Math.random() * size) * box,
-        y: Math.floor(Math.random() * size) * box
+        x: Math.floor(Math.random() * size),
+        y: Math.floor(Math.random() * size)
       };
     }
 
     function init() {
-      snake = [{ x: 9 * box, y: 9 * box }];
+      size = 20;
+      box = canvas.width / size;
+
+      snake = [{ x: 9, y: 9 }];
       direction = null;
       food = spawnFood();
       isGameOver = false;
@@ -99,56 +123,30 @@
       gameLoop = setInterval(draw, 100);
     }
 
-    document.addEventListener('DOMContentLoaded', init);
-
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && isGameOver) {
-        init();
-        return;
-      }
-      if (isGameOver) return;
-      if (e.key === 'ArrowUp' && direction !== 'DOWN') direction = 'UP';
-      if (e.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
-      if (e.key === 'ArrowLeft' && direction !== 'RIGHT') direction = 'LEFT';
-      if (e.key === 'ArrowRight' && direction !== 'LEFT') direction = 'RIGHT';
-    });
-
-    document.getElementById('up').addEventListener('click', () => { if (!isGameOver && direction !== 'DOWN') direction = 'UP'; });
-    document.getElementById('down').addEventListener('click', () => { if (!isGameOver && direction !== 'UP') direction = 'DOWN'; });
-    document.getElementById('left').addEventListener('click', () => { if (!isGameOver && direction !== 'RIGHT') direction = 'LEFT'; });
-    document.getElementById('right').addEventListener('click', () => { if (!isGameOver && direction !== 'LEFT') direction = 'RIGHT'; });
-
-    resetBtn.addEventListener('click', init);
-
     function draw() {
-      // calcola nuova testa
       let headX = snake[0].x;
       let headY = snake[0].y;
-      if (direction === 'LEFT') headX -= box;
-      if (direction === 'RIGHT') headX += box;
-      if (direction === 'UP') headY -= box;
-      if (direction === 'DOWN') headY += box;
 
-      // collisione
-      const max = size * box;
+      if (direction === 'LEFT') headX--;
+      if (direction === 'RIGHT') headX++;
+      if (direction === 'UP') headY--;
+      if (direction === 'DOWN') headY++;
+
       if (
-        headX < 0 ||
-        headY < 0 ||
-        headX + box > max ||
-        headY + box > max ||
+        headX < 0 || headY < 0 ||
+        headX >= size || headY >= size ||
         snake.some((seg, i) => i > 0 && seg.x === headX && seg.y === headY)
       ) {
         clearInterval(gameLoop);
         isGameOver = true;
         ctx.fillStyle = 'black';
-        ctx.font = '36px sans-serif';
+        ctx.font = `${Math.floor(canvas.width / 12)}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2);
         resetBtn.style.display = 'inline-block';
         return;
       }
 
-      // mangia?
       if (headX === food.x && headY === food.y) {
         food = spawnFood();
       } else {
@@ -157,18 +155,81 @@
 
       snake.unshift({ x: headX, y: headY });
 
-      // disegno
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = 'red';
-      ctx.fillRect(food.x, food.y, box, box);
+      ctx.fillRect(food.x * box, food.y * box, box, box);
+
       snake.forEach((seg, i) => {
         ctx.fillStyle = i === 0 ? 'green' : 'lime';
-        ctx.fillRect(seg.x, seg.y, box, box);
+        ctx.fillRect(seg.x * box, seg.y * box, box, box);
         ctx.strokeStyle = '#000';
-        ctx.strokeRect(seg.x, seg.y, box, box);
+        ctx.strokeRect(seg.x * box, seg.y * box, box, box);
       });
     }
+
+    function setDirection(newDir) {
+      if (isGameOver) return;
+      if (newDir === 'UP' && direction !== 'DOWN') direction = 'UP';
+      if (newDir === 'DOWN' && direction !== 'UP') direction = 'DOWN';
+      if (newDir === 'LEFT' && direction !== 'RIGHT') direction = 'LEFT';
+      if (newDir === 'RIGHT' && direction !== 'LEFT') direction = 'RIGHT';
+    }
+
+    // Keyboard
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && isGameOver) {
+        init();
+        return;
+      }
+      if (e.key === 'ArrowUp') setDirection('UP');
+      if (e.key === 'ArrowDown') setDirection('DOWN');
+      if (e.key === 'ArrowLeft') setDirection('LEFT');
+      if (e.key === 'ArrowRight') setDirection('RIGHT');
+    });
+
+    // Touch buttons
+    document.getElementById('up').addEventListener('click', () => setDirection('UP'));
+    document.getElementById('down').addEventListener('click', () => setDirection('DOWN'));
+    document.getElementById('left').addEventListener('click', () => setDirection('LEFT'));
+    document.getElementById('right').addEventListener('click', () => setDirection('RIGHT'));
+
+    // Swipe support (migliorato)
+    let touchStartX = 0, touchStartY = 0;
+
+    canvas.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) return;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', e => {
+      if (e.changedTouches.length !== 1) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+
+      const threshold = 30; // soglia minima per swipe
+
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
+        setDirection(dx > 0 ? 'RIGHT' : 'LEFT');
+      } else if (Math.abs(dy) > threshold) {
+        setDirection(dy > 0 ? 'DOWN' : 'UP');
+      }
+    }, { passive: true });
+
+    // Evita lo scrolling durante il gioco
+    document.body.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+    resetBtn.addEventListener('click', init);
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      init();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      resizeCanvas();
+      init();
+    });
   </script>
 </body>
 
-</html> 
+</html>
